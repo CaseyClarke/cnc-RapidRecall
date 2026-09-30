@@ -4,7 +4,7 @@ echo "Ensure the filename checker is in the same directory as your assignment fi
 
 read -r -p "Enter your CCID: " ccid
 
-expected_filename="${ccid}_RapidRecall.zip"
+expected_filename="${ccid}-RapidRecall.zip"
 
 # Get directory where this script is located
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
