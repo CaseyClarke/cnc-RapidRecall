@@ -1,10 +1,10 @@
 package com.example.cnc_rapidrecall
 
 import android.os.Bundle
-import android.os.CountDownTimer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -13,294 +13,82 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.cnc_rapidrecall.ui.theme.Charcoal
-import com.example.cnc_rapidrecall.ui.theme.PastelBlue
 import com.example.cnc_rapidrecall.ui.theme.PastelGreen
 import com.example.cnc_rapidrecall.ui.theme.PastelMauve
 import com.example.cnc_rapidrecall.ui.theme.PastelOrange
-import com.example.cnc_rapidrecall.ui.theme.PastelPink
-import com.example.cnc_rapidrecall.ui.theme.PastelYellow
+import com.example.cnc_rapidrecall.ui.theme.PastelPurple
+import com.example.cnc_rapidrecall.ui.theme.PastelRed
 import kotlinx.serialization.Serializable
-import kotlin.random.Random
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+// sources
+// ----------------------------------------------------------------------------------
+// some of the basic nav3 code and transitions boilerplate was based off of this repo, just examples of how to use nav3 cause it's new
+// https://github.com/android/nav3-recipes
+// ----------------------------------------------------------------------------------
+
+@Serializable
+data class Attempt(
+    val sequence: String,
+    val answer: String,
+    val timestamp: Long = System.currentTimeMillis()
+) {
+    val won get() = sequence == answer
+    val level get() = sequence.length
+
+}
 
 @Serializable
 private data object HomeScreen : NavKey
 
 @Serializable
-private data object GameScreen : NavKey
+private data class GameScreen(
+    val level: Int
+) : NavKey
 
 @Serializable
-private data object ResultsScreen : NavKey
+private data class ResultsScreen(
+    val attempt: Attempt
+) : NavKey
+
 
 @Serializable
 private data object LevelSelectScreen : NavKey
 
+@Serializable
+private data object LogScreen : NavKey
 
-fun timerFactory(
-    tick: (Long) -> Unit,
-    finish: () -> Unit,
-    len: Long,
-    interval: Long
-): CountDownTimer {
-    val timer = object : CountDownTimer(len, interval) {
-        override fun onTick(millisUntilFinished: Long) {
-            tick(millisUntilFinished)
-        }
-
-        override fun onFinish() {
-            finish()
-        }
-    }
-    return timer
-}
-
-
-@Composable
-fun GameScreen(backStack: NavBackStack<NavKey>) {
-    var timerText by remember { mutableStateOf("") }
-    var sequenceText by remember { mutableStateOf("") }
-    var countdownVisible by remember { mutableStateOf(false) }
-    var displaySequence by remember { mutableStateOf(false) }
-    val colorList = listOf(PastelYellow, PastelGreen, PastelOrange, PastelBlue, PastelPink)
-    var sequenceColor by remember { mutableStateOf(colorList[0]) }
-    var sequence by remember { mutableStateOf("") }
-    var answerRequest by remember { mutableStateOf(false) }
-    var sequenceAnswer by remember { mutableStateOf("") }
-
-
-    var n = 5
-
-    val sequenceTimer = timerFactory({ millisUntilFinished: Long ->
-        sequenceText = Random.nextInt(0, 10).toString()
-        sequence += sequenceText
-        sequenceColor = colorList[(colorList.indexOf(sequenceColor) + 1) % colorList.size]
-    }, {
-        displaySequence = false
-        answerRequest = true
-    }, (300 * n).toLong(), 300)
-
-
-    val countdownTimer = timerFactory({ millisUntilFinished: Long ->
-        val secondsRemaining = (millisUntilFinished / 1000) + 1
-        timerText = if (secondsRemaining.toInt() > 3) {
-            "Ready?"
-        } else {
-            "$secondsRemaining"
-        }
-    }, {
-        countdownVisible = false
-        displaySequence = true
-        sequenceTimer.start()
-    }, 4000, 1000)
-
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            countdownTimer.start()
-            countdownVisible = true
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .background(PastelPink)
-            .safeDrawingPadding()
-            .fillMaxSize()
-            .clip(RoundedCornerShape(48.dp))
-
-    ) {
-    }
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(48.dp)
-    ) {
-        if (countdownVisible) {
-            Text(
-                text = timerText,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth(),
-                style = TextStyle(fontSize = 10.sp),
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = 1.sp,
-                    maxFontSize = 200.sp,
-                    stepSize = 1.sp
-                )
-            )
-        } else if (displaySequence) {
-            Text(
-                sequenceText,
-                color = sequenceColor,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(48.dp))
-                    .background(Charcoal),
-                style = TextStyle(fontSize = 10.sp),
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = 1.sp,
-                    maxFontSize = 200.sp,
-                    stepSize = 1.sp
-                )
-            )
-        } else if (answerRequest) {
-            if (sequenceAnswer.length == n) {
-                backStack.add(ResultsScreen)
-            }
-
-            Column(
-                verticalArrangement = Arrangement.Bottom,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(10.dp)
-            ) {
-                Text(
-                    "Enter the digits in the order they appeared",
-                    modifier = Modifier.padding(20.dp)
-                )
-
-                Row {
-                    Button(
-                        onClick = { sequenceAnswer += "1" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("1") }
-                    Button(
-                        onClick = { sequenceAnswer += "2" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("2") }
-                    Button(
-                        onClick = { sequenceAnswer += "3" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("3") }
-                }
-                Row {
-                    Button(
-                        onClick = { sequenceAnswer += "4" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("4") }
-                    Button(
-                        onClick = { sequenceAnswer += "5" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("5") }
-                    Button(
-                        onClick = { sequenceAnswer += "6" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("6") }
-                }
-                Row {
-                    Button(
-                        onClick = { sequenceAnswer += "7" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("7") }
-                    Button(
-                        onClick = { sequenceAnswer += "8" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("8") }
-                    Button(
-                        onClick = { sequenceAnswer += "9" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("9") }
-                }
-                Row {
-                    Button(
-                        onClick = { sequenceAnswer += "0" },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(10.dp),
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) { Text("0") }
-                }
-            }
-        }
-    }
-
-}
+@Serializable
+private data object AttemptSummaryScreen : NavKey
 
 
 class MainActivity : ComponentActivity() {
@@ -311,99 +99,168 @@ class MainActivity : ComponentActivity() {
 
             val backStack = rememberNavBackStack(HomeScreen)
 
+            var attempts by remember {
+                mutableStateOf(listOf<Attempt>())
+            }
+
             NavDisplay(
                 backStack = backStack,
                 onBack = { backStack.removeLastOrNull() },
                 entryProvider = entryProvider {
                     entry<HomeScreen> {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .background(PastelGreen)
-                                .safeDrawingPadding()
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(48.dp))
-
-                        ) {
+                        ScreenColumn(backgroundColor = PastelGreen) {
                             Text("Home")
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             Button(
                                 onClick = dropUnlessResumed { backStack.add(LevelSelectScreen) }
                             ) {
                                 Text("Play")
                             }
+
+                            Button(
+                                onClick = dropUnlessResumed { backStack.add(AttemptSummaryScreen) }
+                            ) {
+                                Text("Gameplay Summary")
+                            }
+
+                            Button(
+                                onClick = dropUnlessResumed { backStack.add(LogScreen) }
+                            ) {
+                                Text("Game Log")
+                            }
                         }
                     }
                     entry<LevelSelectScreen>(
                         metadata = metadata {
-//                             Slide new content up, keeping the old content in place underneath
-                            put(NavDisplay.TransitionKey) {
-                                slideInVertically(
-                                    initialOffsetY = { it },
-                                    animationSpec = tween(1000)
-                                ) togetherWith ExitTransition.KeepUntilTransitionsFinished
-                            }
-
-                            // Slide old content down, revealing the new content in place underneath
-                            put(NavDisplay.PopTransitionKey) {
-                                EnterTransition.None togetherWith
-                                        slideOutVertically(
-                                            targetOffsetY = { it },
-                                            animationSpec = tween(1000)
-                                        )
-                            }
-
-                            // Slide old content down, revealing the new content in place underneath
-                            put(NavDisplay.PredictivePopTransitionKey) {
-                                EnterTransition.None togetherWith
-                                        slideOutVertically(
-                                            targetOffsetY = { it },
-                                            animationSpec = tween(1000)
-                                        )
-                            }
+                            put(NavDisplay.TransitionKey) { slideUpTransition() }
+                            put(NavDisplay.PopTransitionKey) { slideDownExitTransition() }
+                            put(NavDisplay.PredictivePopTransitionKey) { slideDownExitTransition() }
                         }
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .background(PastelMauve)
-                                .safeDrawingPadding()
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(48.dp))
-
-                        ) {
+                        ScreenColumn(backgroundColor = PastelMauve) {
                             Text("Level Select")
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                            Button(
-                                onClick = dropUnlessResumed { backStack.add(GameScreen) }
-                            ) {
-                                Text("Level 1")
+                            for (i in 1..10) {
+                                Button(
+                                    onClick = dropUnlessResumed { backStack.add(GameScreen(level = i)) }
+                                ) {
+                                    Text("Level $i")
+                                }
                             }
                         }
                     }
+                    entry<LogScreen> {
+                        ScreenColumn(
+                            backgroundColor = PastelRed,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Text("Log")
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            HorizontalDivider(thickness = 3.dp, color = Charcoal)
+                            LazyColumn {
+                                items(attempts) { attempt ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+
+                                        ) {
+                                        Text(
+                                            "Timestamp: " + SimpleDateFormat(
+                                                "MMM d, yyyy h:mm a",
+                                                Locale.getDefault()
+                                            ).format(Date(attempt.timestamp))
+                                        )
+                                        Text(if (attempt.won) "Win" else "Loss")
+                                        Text("Level: " + attempt.level)
+                                        Text("Correct Answer: " + attempt.sequence)
+                                        Text("Your Answer: " + attempt.answer)
+                                    }
+
+                                    HorizontalDivider(thickness = 3.dp, color = Charcoal)
+                                }
+                            }
+
+                        }
+
+                    }
+                    entry<AttemptSummaryScreen> {
+                        ScreenColumn(backgroundColor = PastelPurple) {
+                            Text("Gameplay Summary")
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val totalGames = attempts.size
+                            val totalWins = attempts.count { it.won }
+                            val totalLosses = totalGames - totalWins
+                            val winPercentage =
+                                if (totalGames > 0) totalWins.toFloat() / totalGames.toFloat() else 0f
+
+                            Text("Total Games: $totalGames")
+                            Text("Number of Wins: $totalWins")
+                            Text("Number of Losses: $totalLosses")
+                            Text("Percentage of Wins: ${winPercentage * 100}%")
+
+                        }
+
+                    }
+
                     entry<GameScreen>(
                         metadata = metadata {
-                            put(NavDisplay.TransitionKey) {
-                                slideInVertically(
-                                    initialOffsetY = { -it },
-                                    animationSpec = tween(1000)
-                                ) togetherWith ExitTransition.KeepUntilTransitionsFinished
-                            }
+                            put(NavDisplay.TransitionKey) { slideDownFromTopTransition() }
                         }
-                    ) {
-                        GameScreen(backStack)
+                    ) { gameScreen ->
+                        GameScreen(
+                            level = gameScreen.level,
+                            onGameFinished = { attempt ->
+                                attempts = attempts + attempt
+                                backStack.clear()
+                                backStack.add(HomeScreen)
+                                backStack.add(ResultsScreen(attempt))
+                            }
+                        )
                     }
-                    entry<ResultsScreen> {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .background(PastelOrange)
-                                .safeDrawingPadding()
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(48.dp))
-
-                        ) {
+                    entry<ResultsScreen> { resultsScreen ->
+                        val attempt = resultsScreen.attempt
+                        ScreenColumn(backgroundColor = PastelOrange) {
                             Text("Results")
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+
+                            if (attempt.won) {
+                                Text("You Won!")
+                                Text("\uD83C\uDF89", fontSize = 64.em)
+                            } else {
+                                Text("You Lost!")
+                                Text("\uD83D\uDE22", fontSize = 64.em)
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text("Level: ${attempt.level}")
+                            Text("Correct Answer: ${attempt.sequence}")
+                            Text("Your Answer: ${attempt.answer}")
+                            var squares = ""
+                            for (i in attempt.sequence.indices) {
+                                squares += if (attempt.sequence[i] == attempt.answer[i]) {
+                                    "\uD83D\uDFE9"
+                                } else {
+                                    "\uD83D\uDFE5"
+                                }
+                            }
+                            Text(
+                                squares,
+                                maxLines = 1,
+                                autoSize = TextAutoSize.StepBased(
+                                    minFontSize = 1.sp,
+                                    maxFontSize = 32.sp,
+                                    stepSize = 1.sp
+                                )
+                            )
 
                             Button(
                                 onClick = dropUnlessResumed {
@@ -418,37 +275,46 @@ class MainActivity : ComponentActivity() {
 
                     }
                 },
-                transitionSpec = {
-                    // Slide in from right when navigating forward
-                    slideInHorizontally(
-                        initialOffsetX = { it },
-                        animationSpec = tween(1000)
-                    ) togetherWith slideOutHorizontally(
-                        targetOffsetX = { -it },
-                        animationSpec = tween(1000)
-                    )
-                },
-                popTransitionSpec = {
-                    // Slide in from left when navigating back
-                    slideInHorizontally(
-                        initialOffsetX = { -it },
-                        animationSpec = tween(1000)
-                    ) togetherWith slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(1000)
-                    )
-                },
-                predictivePopTransitionSpec = {
-                    // Slide in from left when navigating back
-                    slideInHorizontally(
-                        initialOffsetX = { -it },
-                        animationSpec = tween(1000)
-                    ) togetherWith slideOutHorizontally(
-                        targetOffsetX = { it },
-                        animationSpec = tween(1000)
-                    )
-                }
+                transitionSpec = { slideInFromRightTransition() },
+                popTransitionSpec = { slideInFromLeftTransition() },
+                predictivePopTransitionSpec = { slideInFromLeftTransition() }
             )
         }
     }
 }
+
+fun slideUpTransition(): ContentTransform =
+    slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = tween(1000)
+    ) togetherWith ExitTransition.None
+
+fun slideDownExitTransition(): ContentTransform =
+    EnterTransition.None togetherWith slideOutVertically(
+        targetOffsetY = { it },
+        animationSpec = tween(1000)
+    )
+
+fun slideDownFromTopTransition(): ContentTransform =
+    slideInVertically(
+        initialOffsetY = { -it },
+        animationSpec = tween(1000)
+    ) togetherWith ExitTransition.None
+
+fun slideInFromRightTransition(): ContentTransform =
+    slideInHorizontally(
+        initialOffsetX = { it },
+        animationSpec = tween(1000)
+    ) togetherWith slideOutHorizontally(
+        targetOffsetX = { -it },
+        animationSpec = tween(1000)
+    )
+
+fun slideInFromLeftTransition(): ContentTransform =
+    slideInHorizontally(
+        initialOffsetX = { -it },
+        animationSpec = tween(1000)
+    ) togetherWith slideOutHorizontally(
+        targetOffsetX = { it },
+        animationSpec = tween(1000)
+    )
