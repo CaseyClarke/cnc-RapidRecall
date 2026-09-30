@@ -46,6 +46,12 @@ Before starting a round, players can choose the length of the number sequence th
         -   UML class diagram(s) detailing the app\'s object-oriented
             design. Include notes on each class\'s main
             responsibilities.
+    3.  **License**
+        - LICENSE your assignment with an opensource license. Add a
+          **LICENSE.md** file to the root directory of the assignment
+          that contains an opensource license that will be used for
+          the assignment.
+          - Apache 2.0 or GPL 3.0 or AGPL 3.0 are recommended
 
 3.  Demonstration Actions:
     1.  Open the app from the launcher.
@@ -66,7 +72,7 @@ Before starting a round, players can choose the length of the number sequence th
 
     This is a description of the core functionality. Often, problem
     statements from users lack details. As you are prototyping a design,
-    you may uncover other behaviors that have not been specified, but
+    you may uncover other behaviours that have not been specified, but
     make sense in the context and intent of the application. For
     example, think about how someone might effectively use your
     application. It is up to you to decide what functions your design
@@ -106,6 +112,7 @@ Before starting a round, players can choose the length of the number sequence th
     -   cannot view files without specialized tools
     -   lossy compression used in image file(s) for UML (e.g., JPEG)
     -   inadequate or improper citations
+    -   missing license
     -   using RAR archive format
 
     These are brown M&M rules.
@@ -120,9 +127,11 @@ Before starting a round, players can choose the length of the number sequence th
         **code/app/build/outputs/apk/debug/app-debug.apk**.
     -   Store the demonstration video in the **video** directory.
     -   Keep UML documentation in the **doc** directory.
+    -   Keep LICENSE.md in the **root** directory
     -   Zip the **YOURCCID-RapidRecall** directory and upload.
-    -   **NOTE:** If any of the above submission steps are not followed, then the misplaced file(s) will be considered "incomplete" and your grade reduced accordingly.
-    -   We have included a bash script called `check_filename_a1.sh` that you can use to check the name of your zip file. Put the bash script in the same directory as the zip file, and then run it.
+> [!NOTE]
+> - If any of the above submission steps are not followed, then the misplaced file(s) will be considered "incomplete" and your grade reduced accordingly.
+> - We have included a bash script called `check_filename_a1.sh` that you can use to check the name of your zip file. Put the bash script in the same directory as the zip file, and then run it.
 
 7.  Evaluation Criteria:
 
@@ -130,8 +139,8 @@ Before starting a round, players can choose the length of the number sequence th
     categories:
 
     -   **Excellent (8):** Functionality meets all requirements,
-        intuitive UI, comprehensive UML, and a clear video
-        demonstration.
+        intuitive UI, comprehensive UML, appropriate license, 
+        and a clear video demonstration.
     -   **Good (7):** Minor issues but overall functional and follows
         submission rules.
     -   **Satisfactory (5):** Runs, but noticeable issues; some
