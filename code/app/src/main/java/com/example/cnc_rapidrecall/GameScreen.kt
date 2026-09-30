@@ -43,6 +43,10 @@ import com.example.cnc_rapidrecall.ui.theme.PastelPink
 import com.example.cnc_rapidrecall.ui.theme.PastelYellow
 import kotlin.random.Random
 
+/**
+ * Purpose: Holds and manages UI state and timers for the active game level.
+ * Design Rationale: Encapsulates countdown, digit generation, and user input state with `CountDownTimer` instances.
+ */
 class GameScreenState(
     val level: Int,
     val onGameFinished: (Attempt) -> Unit

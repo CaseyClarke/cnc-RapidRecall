@@ -56,6 +56,10 @@ import java.util.Locale
 // https://github.com/android/nav3-recipes
 // ----------------------------------------------------------------------------------
 
+/**
+ * Purpose: Represents a completed game attempt, storing sequence, answer, and timestamp.
+ * Design Rationale: Data class with computed properties (`won`, `level`) to keep score logic for navigation state.
+ */
 @Serializable
 data class Attempt(
     val sequence: String,
@@ -67,30 +71,56 @@ data class Attempt(
 
 }
 
+/**
+ * Purpose: Navigation key representing the home screen destination.
+ * Design Rationale: routing.
+ */
 @Serializable
 private data object HomeScreen : NavKey
 
+/**
+ * Purpose: Navigation key representing the game screen destination with level parameter.
+ * Design Rationale: routing.
+ */
 @Serializable
 private data class GameScreen(
     val level: Int
 ) : NavKey
 
+/**
+ * Purpose: Navigation key representing the results screen destination holding attempt data.
+ * Design Rationale: routing.
+ */
 @Serializable
 private data class ResultsScreen(
     val attempt: Attempt
 ) : NavKey
 
-
+/**
+ * Purpose: Navigation key representing the level select screen destination.
+ * Design Rationale: routing.
+ */
 @Serializable
 private data object LevelSelectScreen : NavKey
 
+/**
+ * Purpose: Navigation key representing the game log screen destination.
+ * Design Rationale: routing.
+ */
 @Serializable
 private data object LogScreen : NavKey
 
+/**
+ * Purpose: Navigation key representing the gameplay summary screen destination.
+ * Design Rationale: routing.
+ */
 @Serializable
 private data object AttemptSummaryScreen : NavKey
 
-
+/**
+ * Purpose: Main activity hosting the Jetpack Compose UI and Navigation3 backstack display.
+ * Design Rationale: routing.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
